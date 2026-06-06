@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "teacher", "admin"] },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "balance": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "displayName", "balance", "status", "createdAt"]
+    },
+    "course": {
+      "title": "Course",
+      "description": "Course information",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "price": { "type": "number" },
+        "description": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "category": { "type": "string" },
+        "content": { "type": "array" },
+        "studentsCount": { "type": "number" },
+        "revenue": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "teacherId", "teacherName", "price", "description", "category", "studentsCount", "revenue", "content", "status", "createdAt", "updatedAt"]
+    },
+    "enrollment": {
+      "title": "Enrollment",
+      "description": "Course enrollment record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "enrolledAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "courseId", "enrolledAt"]
+    },
+    "app_setting": {
+      "title": "App Setting",
+      "description": "Global application configurations",
+      "type": "object",
+      "properties": {
+        "gemini_key": { "type": "string" },
+        "isActiveForEveryone": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "/courses/{courseId}": {
+      "schema": "course",
+      "description": "All courses"
+    },
+    "/enrollments/{enrollmentId}": {
+      "schema": "enrollment",
+      "description": "Enrollment records"
+    },
+    "/app_settings/{settingId}": {
+      "schema": "app_setting",
+      "description": "Global app settings"
+    }
+  }
+}
