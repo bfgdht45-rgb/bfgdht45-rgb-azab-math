@@ -1386,7 +1386,7 @@ export default function App() {
               displayName: user.displayName || 'Anonymous',
               photoURL: user.photoURL || undefined,
               balance: 0,
-              status: isAdmin ? 'approved' : 'pending',
+              status: 'approved',
               createdAt: new Date().toISOString()
             };
             try {
@@ -1584,8 +1584,19 @@ export default function App() {
                 onClick={async () => {
                   try {
                     await loginWithGoogle();
-                  } catch (err) {
-                    toast.error("فشل تسجيل الدخول. تأكد من السماح بالنوافذ المنبثقة.");
+                  } catch (err: any) {
+                    console.error("Auth error details:", err);
+                    const errMsg = err?.message || '';
+                    const errCode = err?.code || '';
+                    if (errCode === 'auth/unauthorized-domain' || errMsg.includes('unauthorized-domain')) {
+                      toast.error("هذا النطاق غير مصرح به في Firebase! يرجى إضافة riyadiyat-pro.netlify.app لنطاقاتك المعتمدة في Console.");
+                    } else if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
+                      toast.error("تم إغلاق نافذة تسجيل الدخول من قبلك.");
+                    } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
+                      toast.error("تم حظر النافذة المنبثقة! يرجى السماح بالنوافذ المنبثقة وتجربة الدخول مجدداً.");
+                    } else {
+                      toast.error(`فشل تسجيل الدخول: ${errCode || err.message || "تأكد من السماح بالنوافذ المنبثقة"}`);
+                    }
                   }
                 }} 
                 className="rounded-full bg-indigo-600 px-6 shadow-lg shadow-indigo-100 hover:bg-indigo-700"

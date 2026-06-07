@@ -35,18 +35,29 @@ service cloud.firestore {
       allow list: if isAdmin();
       
       allow create: if isOwner(userId) && isValidUser(incoming()) && (
-        (incoming().role == 'student' && incoming().status == 'approved' && incoming().balance == 0) ||
+        (incoming().role == 'student' && incoming().status in ['approved', 'pending'] && incoming().balance == 0) ||
         (incoming().role == 'admin' && request.auth.token.email == 'bfgdht45@gmail.com')
       );
 
       allow update: if (
+        // Action: Self edit profile details (displayName, photoURL)
         (isOwner(userId) && isValidUser(incoming()) && 
          incoming().role == existing().role && 
          incoming().status == existing().status && 
          incoming().balance == existing().balance &&
          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL'])) ||
+        
+        // Action: Self apply to become a teacher (transition student roles to pending teacher)
+        (isOwner(userId) && isValidUser(incoming()) &&
+         existing().role == 'student' &&
+         incoming().role == 'teacher' &&
+         incoming().status == 'pending' &&
+         incoming().balance == existing().balance &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['role', 'status'])) ||
+
+        // Action: Admin updates user status/details
         (isAdmin() && isValidUser(incoming()) && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['role', 'status', 'balance']))
+         incoming().diff(existing()).affectedKeys().hasAny(['role', 'status', 'balance']))
       );
     }
 
