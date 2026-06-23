@@ -13,7 +13,7 @@ import { User, GraduationCap, School, LogIn, ShoppingCart, BookOpen, MessageSqua
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import { auth, loginWithGoogle, db, handleFirestoreError, OperationType } from './lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { collection, query, addDoc, doc, setDoc, getDoc, onSnapshot, where, deleteDoc } from 'firebase/firestore';
 import { getMathTutorResponse, testGeminiConnection, setGlobalApiKey, getApiKeySource, clearLocalApiKey } from './lib/gemini';
 import { Toaster } from "@/components/ui/sonner";
@@ -1305,6 +1305,93 @@ export default function App() {
   const [courseToDelete, setCourseToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // States for unified Auth Modal (Google & Email/Password for external hosting support)
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<'signin' | 'signup'>('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authLoadingState, setAuthLoadingState] = useState(false);
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authEmail || !authPassword) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+    setAuthLoadingState(true);
+    try {
+      await signInWithEmailAndPassword(auth, authEmail, authPassword);
+      toast.success("تم تسجيل الدخول بنجاح!");
+      setAuthModalOpen(false);
+      setAuthEmail('');
+      setAuthPassword('');
+    } catch (err: any) {
+      console.error(err);
+      const errMsg = err?.message || "";
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || errMsg.includes("invalid-credential")) {
+        toast.error("خطأ في البريد الإلكتروني أو كلمة المرور");
+      } else if (err.code === "auth/invalid-email") {
+        toast.error("صيغة البريد الإلكتروني غير صحيحة");
+      } else {
+        toast.error(`فشل تسجيل الدخول: ${err.message}`);
+      }
+    } finally {
+      setAuthLoadingState(false);
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authEmail || !authPassword || !authName) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة بما في ذلك الاسم");
+      return;
+    }
+    if (authPassword.length < 6) {
+      toast.error("يجب أن تكون كلمة المرور 6 أحرف على الأقل");
+      return;
+    }
+    setAuthLoadingState(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+      await updateProfile(userCredential.user, {
+        displayName: authName
+      });
+      
+      const isAdmin = authEmail.trim().toLowerCase() === MASTER_ADMIN_EMAIL.trim().toLowerCase();
+      const newProfile: UserProfile = {
+        uid: userCredential.user.uid,
+        email: authEmail,
+        role: isAdmin ? 'admin' : 'student',
+        displayName: authName,
+        photoURL: undefined,
+        balance: 0,
+        status: 'approved',
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'users', userCredential.user.uid), newProfile);
+      
+      toast.success("تم إنشاء الحساب وتسجيل الدخول بنجاح!");
+      setAuthModalOpen(false);
+      setAuthEmail('');
+      setAuthPassword('');
+      setAuthName('');
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === "auth/email-already-in-use") {
+        toast.error("هذا البريد الإلكتروني مستخدم بالفعل");
+      } else if (err.code === "auth/invalid-email") {
+        toast.error("صيغة البريد الإلكتروني غير صحيحة");
+      } else if (err.code === "auth/weak-password") {
+        toast.error("كلمة المرور ضعيفة للغاية");
+      } else {
+        toast.error(`فشل إنشاء الحساب: ${err.message}`);
+      }
+    } finally {
+      setAuthLoadingState(false);
+    }
+  };
+
   // Set global admin flag for Gemini helper
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1581,27 +1668,13 @@ export default function App() {
             )}
             {!currentUser ? (
               <Button 
-                onClick={async () => {
-                  try {
-                    await loginWithGoogle();
-                  } catch (err: any) {
-                    console.error("Auth error details:", err);
-                    const errMsg = err?.message || '';
-                    const errCode = err?.code || '';
-                    if (errCode === 'auth/unauthorized-domain' || errMsg.includes('unauthorized-domain')) {
-                      toast.error(`المجال (${window.location.hostname}) غير مصرح به في Firebase! يرجى إضافته إلى "Authorized Domains" في إعدادات Authentication داخل Firebase Console.`);
-                    } else if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
-                      toast.error("تم إغلاق نافذة تسجيل الدخول من قبلك.");
-                    } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
-                      toast.error("تم حظر النافذة المنبثقة! يرجى السماح بالنوافذ المنبثقة وتجربة الدخول مجدداً.");
-                    } else {
-                      toast.error(`فشل تسجيل الدخول: ${errCode || err.message || "تأكد من السماح بالنوافذ المنبثقة"}`);
-                    }
-                  }
+                onClick={() => {
+                  setAuthTab('signin');
+                  setAuthModalOpen(true);
                 }} 
-                className="rounded-full bg-indigo-600 px-6 shadow-lg shadow-indigo-100 hover:bg-indigo-700"
+                className="rounded-full bg-indigo-600 px-6 shadow-lg shadow-indigo-100 hover:bg-indigo-700 font-bold"
               >
-                <LogIn className="ml-2 h-4 w-4" /> الدخول عبر جوجل
+                <LogIn className="ml-2 h-4 w-4" /> تسجيل الدخول
               </Button>
             ) : (
               <div className="flex items-center gap-4">
@@ -2370,6 +2443,148 @@ export default function App() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unified Auth Modal */}
+      <Dialog open={authModalOpen} onOpenChange={setAuthModalOpen}>
+        <DialogContent className="sm:max-w-md p-6 text-right rounded-[2rem] overflow-hidden border-none shadow-2xl bg-white animate-in zoom-in-95 duration-200">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-2xl font-black text-slate-900 text-right">
+              {authTab === 'signin' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <Tabs value={authTab} onValueChange={(v) => setAuthTab(v as 'signin' | 'signup')} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 rounded-xl mb-6">
+              <TabsTrigger value="signin" className="rounded-lg font-bold">تسجيل الدخول</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-lg font-bold">حساب جديد</TabsTrigger>
+            </TabsList>
+
+            <div className="space-y-4">
+              {/* Google Auth with Custom Error Handling and Fallback Message */}
+              <Button 
+                type="button"
+                onClick={async () => {
+                  setAuthLoadingState(true);
+                  try {
+                    await loginWithGoogle();
+                    toast.success("تم تسجيل الدخول بنجاح!");
+                    setAuthModalOpen(false);
+                  } catch (err: any) {
+                    console.error("Auth error details:", err);
+                    const errMsg = err?.message || '';
+                    const errCode = err?.code || '';
+                    if (errCode === 'auth/unauthorized-domain' || errMsg.includes('unauthorized-domain')) {
+                      toast.error("هذا النطاق غير مصرح به لتسجيل الدخول بـ Google! يرجى استخدام 'تسجيل الدخول بالبريد الإلكتروني' بالأسفل مباشرة في ثوانٍ معدودة دون الحاجة لأي إعدادات معقدة.");
+                    } else if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
+                      toast.error("تم إغلاق نافذة تسجيل الدخول.");
+                    } else {
+                      toast.error(`فشل الدخول بجوجل: ${err.message || 'يرجى تجربة البريد الإلكتروني أدناه'}`);
+                    }
+                  } finally {
+                    setAuthLoadingState(false);
+                  }
+                }}
+                disabled={authLoadingState}
+                className="w-full flex items-center justify-center gap-2 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 h-12 rounded-xl shadow-sm font-bold shrink-0"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>الدخول السريع بحساب Google</span>
+              </Button>
+
+              <div className="flex items-center my-4">
+                <div className="flex-1 border-t border-slate-100"></div>
+                <span className="px-3 text-[11px] text-slate-400 font-bold bg-white">أو بالبريد (يعمل على أي استضافة دون قيود)</span>
+                <div className="flex-1 border-t border-slate-100"></div>
+              </div>
+
+              {authTab === 'signin' ? (
+                <form onSubmit={handleEmailSignIn} className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-right block font-bold text-slate-700 text-xs">البريد الإلكتروني</Label>
+                    <Input 
+                      type="email" 
+                      placeholder="name@example.com" 
+                      value={authEmail} 
+                      onChange={(e) => setAuthEmail(e.target.value)} 
+                      className="text-right rounded-xl h-11 border-slate-200 text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-right block font-bold text-slate-700 text-xs">كلمة المرور</Label>
+                    <Input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={authPassword} 
+                      onChange={(e) => setAuthPassword(e.target.value)} 
+                      className="text-right rounded-xl h-11 border-slate-200 text-sm"
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={authLoadingState} 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 rounded-xl mt-4"
+                  >
+                    {authLoadingState ? (
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                    ) : (
+                      "تسجيل الدخول ببريدك"
+                    )}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleEmailSignUp} className="space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-right block font-bold text-slate-700 text-xs">الاسم الكامل</Label>
+                    <Input 
+                      type="text" 
+                      placeholder="عبدالله محمد" 
+                      value={authName} 
+                      onChange={(e) => setAuthName(e.target.value)} 
+                      className="text-right rounded-xl h-11 border-slate-200 text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-right block font-bold text-slate-700 text-xs">البريد الإلكتروني</Label>
+                    <Input 
+                      type="email" 
+                      placeholder="name@example.com" 
+                      value={authEmail} 
+                      onChange={(e) => setAuthEmail(e.target.value)} 
+                      className="text-right rounded-xl h-11 border-slate-200 text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-right block font-bold text-slate-700 text-xs">كلمة المرور</Label>
+                    <Input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={authPassword} 
+                      onChange={(e) => setAuthPassword(e.target.value)} 
+                      className="text-right rounded-xl h-11 border-slate-200 text-sm"
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={authLoadingState} 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 rounded-xl mt-4"
+                  >
+                    {authLoadingState ? (
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                    ) : (
+                      "إنشاء حساب بالبريد"
+                    )}
+                  </Button>
+                </form>
+              )}
+            </div>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
