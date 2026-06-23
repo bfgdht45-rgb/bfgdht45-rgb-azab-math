@@ -1364,11 +1364,11 @@ export default function App() {
         email: authEmail,
         role: isAdmin ? 'admin' : 'student',
         displayName: authName,
-        photoURL: undefined,
         balance: 0,
         status: 'approved',
         createdAt: new Date().toISOString()
       };
+      
       await setDoc(doc(db, 'users', userCredential.user.uid), newProfile);
       
       toast.success("تم إنشاء الحساب وتسجيل الدخول بنجاح!");
@@ -1438,61 +1438,77 @@ export default function App() {
 
   // Load Auth State
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+        unsubscribeDoc = null;
+      }
+
       try {
         if (user) {
-          let userDoc;
-          try {
-            userDoc = await getDoc(doc(db, 'users', user.uid));
-          } catch (err) {
-            handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
-            return;
-          }
-
-          if (userDoc?.exists()) {
-            const profile = userDoc.data() as UserProfile;
-            if (profile.email === MASTER_ADMIN_EMAIL && profile.role !== 'admin') {
-              const updated = { ...profile, role: 'admin' as const, status: 'approved' as const };
-              try {
-                await setDoc(doc(db, 'users', user.uid), updated);
-              } catch (err) {
-                // If this fails, we still set the local state to admin so they can operate
-                // and we'll fix the rules next to allow this.
-                console.warn("Failed to save admin upgrade to firestore, rules might be blocking.");
+          const userDocRef = doc(db, 'users', user.uid);
+          
+          // Real-time synchronization of the user profile document
+          unsubscribeDoc = onSnapshot(userDocRef, async (snapshot) => {
+            if (snapshot.exists()) {
+              const profile = snapshot.data() as UserProfile;
+              if (profile.email === MASTER_ADMIN_EMAIL && profile.role !== 'admin') {
+                const updated = { ...profile, role: 'admin' as const, status: 'approved' as const };
+                try {
+                  await setDoc(userDocRef, updated, { merge: true });
+                } catch (err) {
+                  console.warn("Failed to upgrade admin role in Firestore:", err);
+                }
+                setCurrentUser(updated);
+              } else {
+                setCurrentUser(profile);
               }
-              setCurrentUser(updated);
+              setAuthLoading(false);
             } else {
-              setCurrentUser(profile);
+              // Create user document if it does not exist yet (e.g. Google Sign-in or email signup fallback)
+              const isAdmin = user.email === MASTER_ADMIN_EMAIL;
+              const newProfile: UserProfile = {
+                uid: user.uid,
+                email: user.email || '',
+                role: isAdmin ? 'admin' : 'student', 
+                displayName: user.displayName || 'Anonymous',
+                balance: 0,
+                status: 'approved',
+                createdAt: new Date().toISOString()
+              };
+              if (user.photoURL) {
+                newProfile.photoURL = user.photoURL;
+              }
+              
+              try {
+                await setDoc(userDocRef, newProfile);
+                setCurrentUser(newProfile);
+              } catch (err) {
+                handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}`);
+                setCurrentUser(newProfile); // Fallback to local state
+              }
+              setAuthLoading(false);
             }
-          } else {
-            const isAdmin = user.email === MASTER_ADMIN_EMAIL;
-            const newProfile: UserProfile = {
-              uid: user.uid,
-              email: user.email || '',
-              role: isAdmin ? 'admin' : 'student', 
-              displayName: user.displayName || 'Anonymous',
-              photoURL: user.photoURL || undefined,
-              balance: 0,
-              status: 'approved',
-              createdAt: new Date().toISOString()
-            };
-            try {
-              await setDoc(doc(db, 'users', user.uid), newProfile);
-            } catch (err) {
-              handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}`);
-            }
-            setCurrentUser(newProfile);
-          }
+          }, (err) => {
+            console.error("User profile snapshot error:", err);
+            setAuthLoading(false);
+          });
         } else {
           setCurrentUser(null);
+          setAuthLoading(false);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-      } finally {
         setAuthLoading(false);
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeDoc) unsubscribeDoc();
+    };
   }, []);
 
   // Load Pending Teachers (Admin Only)
