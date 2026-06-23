@@ -224,9 +224,9 @@ const CurriculumBuilder = ({ modules, onChange }: { modules: CourseModule[], onC
     file: File,
     onProgress: (percent: number) => void
   ): Promise<string> => {
-    const isStaticHost = window.location.hostname.includes("netlify.app") || window.location.hostname.includes("github.io");
+    const isStaticHost = window.location.hostname.includes("netlify.app") || window.location.hostname.includes("vercel.app") || window.location.hostname.includes("github.io");
     if (isStaticHost) {
-      throw new Error("تنبيه هام للناشر: أنت الآن تستخدم نسخة مستضافة كبيئة ساكنة (Netlify / GitHub). ميزة الرفع من الجهاز مباشرة تتطلب سيرفر نشط (Full-stack). يرجى التغيير لاختيار 'رابط يوتيوب' للفيديو و'رابط مباشر' لملف الـ PDF لمشاركة المرفقات بشكل سليم بنسبة 100%!");
+      throw new Error("تنبيه هام للناشر: أنت الآن تستخدم نسخة مستضافة كبيئة ساكنة (Vercel / Netlify / GitHub). ميزة الرفع من الجهاز مباشرة تتطلب سيرفر نشط (Full-stack) مخصص. يرجى التغيير لاختيار 'رابط يوتيوب' للفيديو و'رابط مباشر خارجي' لملف الـ PDF لمشاركة المرفقات بشكل سليم بنسبة 100%!");
     }
 
     try {
@@ -1589,7 +1589,7 @@ export default function App() {
                     const errMsg = err?.message || '';
                     const errCode = err?.code || '';
                     if (errCode === 'auth/unauthorized-domain' || errMsg.includes('unauthorized-domain')) {
-                      toast.error("هذا النطاق غير مصرح به في Firebase! يرجى إضافة riyadiyat-pro.netlify.app لنطاقاتك المعتمدة في Console.");
+                      toast.error(`المجال (${window.location.hostname}) غير مصرح به في Firebase! يرجى إضافته إلى "Authorized Domains" في إعدادات Authentication داخل Firebase Console.`);
                     } else if (errCode === 'auth/popup-closed-by-user' || errMsg.includes('popup-closed-by-user')) {
                       toast.error("تم إغلاق نافذة تسجيل الدخول من قبلك.");
                     } else if (errCode === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
