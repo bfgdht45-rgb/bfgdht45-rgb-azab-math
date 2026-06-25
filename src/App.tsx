@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, GraduationCap, School, LogIn, ShoppingCart, BookOpen, MessageSquare, DollarSign, PlusCircle, CheckCircle, XCircle, ShieldCheck, LayoutDashboard, Plus, Trash2, Video, FileText, ListTodo, ChevronDown, ChevronUp, GripVertical, PlayCircle, HelpCircle, Sparkles, FileUp, Loader2, Cpu } from 'lucide-react';
+import { User, GraduationCap, School, LogIn, ShoppingCart, BookOpen, MessageSquare, DollarSign, PlusCircle, CheckCircle, XCircle, ShieldCheck, LayoutDashboard, Plus, Trash2, Video, FileText, ListTodo, ChevronDown, ChevronUp, GripVertical, PlayCircle, HelpCircle, Sparkles, FileUp, Loader2, Cpu, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import { auth, loginWithGoogle, db, handleFirestoreError, OperationType } from './lib/firebase';
@@ -1284,6 +1284,20 @@ const CurriculumPreview = ({ modules }: { modules: CourseModule[] }) => {
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    return (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [theme]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [myEnrollments, setMyEnrollments] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('marketplace');
@@ -1627,23 +1641,23 @@ export default function App() {
   };
 
   if (authLoading) return (
-    <div className="flex h-screen flex-col items-center justify-center bg-[#F8FAFC] font-sans text-slate-900">
+    <div className="flex h-screen flex-col items-center justify-center bg-background font-sans text-foreground">
       <motion.div 
         animate={{ rotate: 360 }} 
         transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
         className="mb-8"
       >
-        <div className="rounded-2xl bg-indigo-600 p-4 shadow-2xl shadow-indigo-200">
+        <div className="rounded-2xl bg-indigo-600 p-4 shadow-2xl shadow-indigo-500/10">
           <GraduationCap className="h-12 w-12 text-white" />
         </div>
       </motion.div>
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-black tracking-widest text-slate-900">MATH PRO</h1>
+        <h1 className="text-2xl font-black tracking-widest text-slate-900 dark:text-white">MATH PRO</h1>
         <div className="flex items-center gap-2 justify-center">
           <div className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-bounce" />
           <div className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-bounce [animation-delay:0.2s]" />
           <div className="h-1.5 w-1.5 rounded-full bg-indigo-600 animate-bounce [animation-delay:0.4s]" />
-          <p className="text-xs font-bold text-slate-400 mr-2">جاري تحميل المنصة...</p>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mr-2">جاري تحميل المنصة...</p>
         </div>
       </div>
     </div>
@@ -1657,29 +1671,47 @@ export default function App() {
   const totalStudents = teacherCourses.reduce((acc, c) => acc + (c.studentsCount || 0), 0);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-indigo-100">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 selection:bg-indigo-100 overflow-x-hidden" dir="rtl">
       <Toaster dir="rtl" />
       
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 border-b bg-white/70 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between p-4">
-          <div className="flex items-center gap-2 font-bold text-indigo-600 transition-transform hover:scale-105 active:scale-95">
-            <div className="rounded-xl bg-indigo-600 p-2 text-white shadow-lg shadow-indigo-200">
-              <GraduationCap className="h-6 w-6" />
-            </div>
-            <span className="text-xl tracking-tight">رياضيات <span className="font-light text-slate-400">برو</span></span>
+      <nav className="sticky top-0 z-50 border-b border-slate-100 dark:border-zinc-800 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between p-4 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 font-bold transition-transform hover:scale-102 active:scale-98 min-w-0">
+            <img 
+              src="/src/assets/images/math_center_logo_1782392727551.jpg" 
+              alt="شعار مستر أنور عزب" 
+              className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg object-contain bg-white p-0.5 border border-slate-100 dark:border-zinc-800 shrink-0" 
+              referrerPolicy="no-referrer"
+            />
+            <span className="text-sm sm:text-xl font-black tracking-tight text-slate-900 dark:text-white truncate">سنتر مستر أنور عزب</span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
+            {/* Theme Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-all active:scale-95 h-9 w-9 shrink-0"
+              title={theme === 'light' ? 'تفعيل الوضع الليلي' : 'تفعيل وضع النهار'}
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5 text-slate-600" />
+              ) : (
+                <Sun className="h-5 w-5 text-amber-500" />
+              )}
+            </Button>
+
             {dbConnected === false && (
-              <Badge variant="destructive" className="animate-pulse gap-1 text-[10px] py-0 px-2 rounded-full">
-                <XCircle className="h-3 w-3" /> خطأ في الاتصال
+              <Badge variant="destructive" className="animate-pulse gap-1 text-[10px] py-0 px-2 rounded-full shrink-0">
+                <XCircle className="h-3 w-3" /> خطأ الاتصال
               </Badge>
             )}
             {dbConnected === true && (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100/50">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
-                <span className="text-[10px] font-bold text-emerald-700 tracking-tight">متصل بالقاعدة</span>
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/20 rounded-full border border-emerald-100/50 dark:border-emerald-900/30 shrink-0">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200 dark:shadow-none" />
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">متصل بالقاعدة</span>
               </div>
             )}
             {!currentUser ? (
@@ -1688,13 +1720,13 @@ export default function App() {
                   setAuthTab('signin');
                   setAuthModalOpen(true);
                 }} 
-                className="rounded-full bg-indigo-600 px-6 shadow-lg shadow-indigo-100 hover:bg-indigo-700 font-bold"
+                className="rounded-full bg-indigo-600 px-4 sm:px-6 shadow-lg shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 font-bold text-xs sm:text-sm h-9 sm:h-10"
               >
-                <LogIn className="ml-2 h-4 w-4" /> تسجيل الدخول
+                <LogIn className="ml-1 sm:ml-2 h-4 w-4" /> تسجيل الدخول
               </Button>
             ) : (
-              <div className="flex items-center gap-4">
-                <Badge variant="secondary" className="hidden sm:inline-flex bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-none px-3 py-1">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Badge variant="secondary" className="hidden sm:inline-flex bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-950 border-none px-3 py-1">
                   {currentUser.role === 'admin' ? (
                     <><ShieldCheck className="ml-1 h-3 w-3" /> أدمن</>
                   ) : currentUser.role === 'teacher' ? (
@@ -1703,15 +1735,15 @@ export default function App() {
                     <><User className="ml-1 h-3 w-3" /> طالب</>
                   )}
                 </Badge>
-                <div className="hidden sm:block text-left">
+                <div className="hidden md:block text-left">
                   <p className="text-xs font-bold leading-none">{currentUser.displayName}</p>
-                  <p className="text-[10px] text-slate-500">{currentUser.email}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{currentUser.email}</p>
                 </div>
-                <Avatar className="h-9 w-9 border-2 border-indigo-100 ring-2 ring-white transition-all hover:border-indigo-500">
+                <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-indigo-100 dark:border-zinc-800 ring-2 ring-white dark:ring-zinc-950 transition-all hover:border-indigo-500">
                   <AvatarImage src={currentUser.photoURL} />
                   <AvatarFallback>{currentUser.displayName[0]}</AvatarFallback>
                 </Avatar>
-                <Button variant="ghost" size="sm" onClick={() => signOut(auth)} className="text-slate-500 hover:text-red-500">خروج</Button>
+                <Button variant="ghost" size="sm" onClick={() => signOut(auth)} className="text-slate-500 dark:text-slate-400 hover:text-red-500 text-xs sm:text-sm h-8 sm:h-9 px-2">خروج</Button>
               </div>
             )}
           </div>
@@ -1738,8 +1770,8 @@ export default function App() {
           </DialogContent>
         </Dialog>
 
-        <Tabs defaultValue="marketplace" className="space-y-6 sm:space-y-8" onValueChange={setActiveTab}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between flex-row-reverse">
+        <Tabs value={activeTab} className="space-y-6 sm:space-y-8" onValueChange={setActiveTab}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                <TabsList className="bg-slate-100 p-1 dark:bg-slate-900 border-none rounded-xl inline-flex w-auto whitespace-nowrap">
                  <TabsTrigger value="marketplace" className="flex gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-4">
@@ -1763,7 +1795,7 @@ export default function App() {
                </TabsList>
             </div>
             
-            <div className="flex gap-2 justify-end sm:justify-start">
+            <div className="flex gap-2 justify-start">
               {currentUser?.role === 'student' && currentUser.status !== 'pending' && (
                 <Button variant="outline" onClick={applyToBeTeacher} className="border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50">
                   كن مدرساً معنا
@@ -1779,21 +1811,88 @@ export default function App() {
 
           {/* CURRICULUM MARKETPLACE */}
           <TabsContent value="marketplace" className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-12 space-y-4 max-w-3xl text-right">
-              <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-slate-900 dark:text-white">
-                المنهج <span className="text-indigo-600">الدراسي</span>
-              </h1>
-              <p className="text-xl text-slate-500 dark:text-slate-400 font-light leading-relaxed">
-                اكتشف أقوى الكورسات والدروس التعليمية المصممة لمساعدتك على التفوق.
-              </p>
+            {/* HERO SECTION */}
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-card border border-border p-6 sm:p-10 mb-12 shadow-sm flex flex-col md:flex-row-reverse items-center justify-between gap-8">
+              {/* Decorative background gradients */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-50/10 via-transparent to-orange-50/10 pointer-events-none" />
+              
+              {/* Logo container under the navbar logo in home layout, optimized size, no distortion */}
+              <div className="relative z-10 w-full md:w-5/12 flex justify-center group/logo">
+                {/* Dynamic background glow halo */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-gradient-to-tr from-indigo-500/15 to-amber-500/15 blur-2xl opacity-80 group-hover/logo:scale-110 group-hover/logo:from-indigo-500/30 group-hover/logo:to-amber-500/30 transition-all duration-500 pointer-events-none" />
+                
+                <div className="relative p-3 rounded-[2rem] bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 max-w-[260px] sm:max-w-[300px] w-[240px] h-[240px] sm:w-full sm:h-auto aspect-square flex items-center justify-center transition-all duration-500 hover:scale-[1.03] hover:border-indigo-100 shadow-sm hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)]">
+                  {/* Subtle card overlay gradient */}
+                  <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-tr from-indigo-50/20 via-transparent to-amber-50/20 opacity-0 group-hover/logo:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                  
+                  <img 
+                    src="/src/assets/images/math_center_logo_1782392727551.jpg" 
+                    alt="مستر أنور عزب - معلمي رياضيات" 
+                    className="w-full h-full object-contain rounded-[1.5rem] relative z-10"
+                    style={{ mixBlendMode: theme === 'light' ? 'multiply' : 'normal' }}
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute -bottom-3 bg-indigo-600 text-white text-[11px] font-black px-4 py-1.5 rounded-full shadow-lg shadow-indigo-200 tracking-wider z-20 group-hover/logo:scale-105 transition-transform duration-300">
+                    المنصة الرسمية
+                  </div>
+                </div>
+              </div>
+
+              {/* Text content */}
+              <div className="relative z-10 w-full md:w-7/12 text-right space-y-5">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 rounded-full border border-amber-100 dark:border-amber-900/30 text-xs font-bold">
+                  ⭐ منصة مستر أنور عزب التعليمية للرياضيات
+                </div>
+                <h1 className="text-3xl font-black sm:text-5xl text-slate-900 dark:text-white leading-[1.25]">
+                  مرحباً بك في منصة <br />
+                  <span className="text-indigo-600 dark:text-indigo-400">مستر أنور عزب</span> للرياضيات
+                </h1>
+                <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
+                  ابدأ رحلة التفوق والدرجات النهائية في مادة الرياضيات للمرحلتين الإعدادية والثانوية مع أقوى الكورسات والدروس التفاعلية المصممة خصيصاً لمساعدتك على النجاح.
+                </p>
+                <div className="flex flex-wrap gap-3 justify-start md:justify-end pt-2">
+                  <Button 
+                    onClick={() => {
+                      const element = document.getElementById('courses-list');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 px-6 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none transition-all active:scale-95"
+                  >
+                    استكشف المنهج الدراسي
+                  </Button>
+                  {!currentUser && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setAuthTab('signup');
+                        setAuthModalOpen(true);
+                      }}
+                      className="border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-900 h-12 px-6 rounded-xl"
+                    >
+                      إنشاء حساب مجاني
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-5">
+              <div className="text-right">
+                <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                  المنهج <span className="text-indigo-600 dark:text-indigo-400">الدراسي</span>
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">اكتشف الكورسات والدروس المتاحة للالتحاق الفوري</p>
+              </div>
               {marketplaceCourses.length === 0 && (currentUser?.role === 'admin' || (currentUser?.role === 'teacher' && currentUser.status === 'approved')) && (
-                 <Button onClick={() => { setEditingCourse(null); setCourseModalOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 h-10 px-6 rounded-xl mt-4">
+                 <Button onClick={() => { setEditingCourse(null); setCourseModalOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 h-10 px-6 rounded-xl">
                    <PlusCircle className="ml-2 h-4 w-4" /> ابدأ بإنشاء المنهج التعليمي
                  </Button>
               )}
-            </header>
+            </div>
 
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <div id="courses-list" className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {marketplaceCourses.length === 0 && (
                 <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                    <div className="mb-6 rounded-3xl bg-slate-100 p-8 dark:bg-slate-900 border-2 border-dashed border-slate-200">
