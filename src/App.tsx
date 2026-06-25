@@ -19,6 +19,7 @@ import { getMathTutorResponse, testGeminiConnection, setGlobalApiKey, getApiKeyS
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { UserProfile, Course, CourseModule, CourseItem, Lesson, Quiz, Question } from './types';
+import mathCenterLogo from './assets/images/math_center_logo_1782392727551.jpg';
 
 const MASTER_ADMIN_EMAIL = "bfgdht45@gmail.com";
 
@@ -1679,7 +1680,7 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl items-center justify-between p-4 gap-2">
           <div className="flex items-center gap-2 sm:gap-3 font-bold transition-transform hover:scale-102 active:scale-98 min-w-0">
             <img 
-              src="/src/assets/images/math_center_logo_1782392727551.jpg" 
+              src={mathCenterLogo} 
               alt="شعار مستر أنور عزب" 
               className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg object-contain bg-white p-0.5 border border-slate-100 dark:border-zinc-800 shrink-0" 
               referrerPolicy="no-referrer"
@@ -1826,7 +1827,7 @@ export default function App() {
                   <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-tr from-indigo-50/20 via-transparent to-amber-50/20 opacity-0 group-hover/logo:opacity-100 transition-opacity duration-500 pointer-events-none" />
                   
                   <img 
-                    src="/src/assets/images/math_center_logo_1782392727551.jpg" 
+                    src={mathCenterLogo} 
                     alt="مستر أنور عزب - معلمي رياضيات" 
                     className="w-full h-full object-contain rounded-[1.5rem] relative z-10"
                     style={{ mixBlendMode: theme === 'light' ? 'multiply' : 'normal' }}
