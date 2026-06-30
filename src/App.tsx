@@ -23,6 +23,41 @@ import mathCenterLogo from './assets/images/math_center_logo_1782392727551.jpg';
 
 const MASTER_ADMIN_EMAIL = "bfgdht45@gmail.com";
 
+// Helper function to format storage/file URLs so they are safely embeddable inside an iframe
+const getEmbeddablePdfUrl = (url: string): string => {
+  if (!url) return '';
+  const trimmedUrl = url.trim();
+  
+  // Google Drive conversion
+  if (trimmedUrl.includes('drive.google.com')) {
+    // Extract file ID from URL patterns (e.g., /file/d/[ID]/view or id=[ID])
+    const fileIdMatch = trimmedUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || trimmedUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+  }
+  
+  // Dropbox conversion (force raw rendering / direct stream in iframe)
+  if (trimmedUrl.includes('dropbox.com')) {
+    if (trimmedUrl.includes('?dl=0')) {
+      return trimmedUrl.replace('?dl=0', '?raw=1');
+    }
+    if (trimmedUrl.includes('&dl=0')) {
+      return trimmedUrl.replace('&dl=0', '&raw=1');
+    }
+    if (!trimmedUrl.includes('?raw=1') && !trimmedUrl.includes('&raw=1')) {
+      return trimmedUrl + (trimmedUrl.includes('?') ? '&raw=1' : '?raw=1');
+    }
+  }
+
+  // OneDrive embed formatting if applicable
+  if (trimmedUrl.includes('onedrive.live.com')) {
+    return trimmedUrl.replace('/view.aspx', '/embed').replace('?resid=', '?embed=1&resid=');
+  }
+  
+  return trimmedUrl;
+};
+
 // ================= COURSE MODAL =================
 const CourseModal = ({ userId, userName, course, onOpenChange }: { userId: string, userName: string, course?: Course | null, onOpenChange: (open: boolean) => void }) => {
   const [loading, setLoading] = useState(false);
@@ -983,7 +1018,7 @@ const CoursePlayer = ({ course, enrollment, currentUser }: { course: Course, enr
                           
                           <div className="relative w-full h-[500px] sm:h-[650px] bg-slate-100 flex items-center justify-center">
                             <iframe 
-                              src={`${(activeItem as Lesson).pdfUrl}#toolbar=1&navpanes=0&messages=0`} 
+                              src={`${getEmbeddablePdfUrl((activeItem as Lesson).pdfUrl)}#toolbar=1&navpanes=0&messages=0`} 
                               className="w-full h-full border-none rounded-b-2xl"
                               title={(activeItem as Lesson).pdfName || 'عرض ملف PDF'}
                               allow="fullscreen"
