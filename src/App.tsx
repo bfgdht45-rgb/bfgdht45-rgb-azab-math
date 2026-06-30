@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, GraduationCap, School, LogIn, ShoppingCart, BookOpen, MessageSquare, DollarSign, PlusCircle, CheckCircle, XCircle, ShieldCheck, LayoutDashboard, Plus, Trash2, Video, FileText, ListTodo, ChevronDown, ChevronUp, GripVertical, PlayCircle, HelpCircle, Sparkles, FileUp, Loader2, Cpu, Sun, Moon } from 'lucide-react';
+import { User, GraduationCap, School, LogIn, ShoppingCart, BookOpen, MessageSquare, DollarSign, PlusCircle, CheckCircle, XCircle, ShieldCheck, LayoutDashboard, Plus, Trash2, Video, FileText, ListTodo, ChevronDown, ChevronUp, GripVertical, PlayCircle, HelpCircle, Sparkles, FileUp, Loader2, Cpu, Sun, Moon, Download, ExternalLink, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import { auth, loginWithGoogle, db, handleFirestoreError, OperationType } from './lib/firebase';
@@ -933,26 +933,66 @@ const CoursePlayer = ({ course, enrollment, currentUser }: { course: Course, enr
                     </div>
 
                     {(activeItem as Lesson).pdfUrl && (
-                      <div className="mt-8 pt-6 border-t border-slate-100">
-                        <h4 className="text-sm font-bold text-slate-800 mb-3 block text-right">الملفات المرفقة بالدرس:</h4>
+                      <div className="mt-8 pt-6 border-t border-slate-100 space-y-5">
+                        <h4 className="text-sm font-bold text-slate-800 mb-1 block text-right">الملفات المرفقة بالدرس:</h4>
+                        
+                        {/* Download & Preview Control Panel */}
                         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-slate-50 border border-slate-200/60 rounded-2xl flex-row-reverse">
                           <div className="flex items-center gap-3 flex-row-reverse">
-                            <div className="h-10 w-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                            <div className="h-10 w-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center shrink-0">
                               <FileText className="h-5 w-5" />
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-bold text-slate-800">{(activeItem as Lesson).pdfName || 'مرفق الدرس (PDF)'}</p>
-                              <p className="text-[10px] text-slate-500 font-medium">ملف بصيغة PDF للقراءة والتحميل</p>
+                              <p className="text-sm font-bold text-slate-800 leading-tight">{(activeItem as Lesson).pdfName || 'مرفق الدرس (PDF)'}</p>
+                              <p className="text-[10px] text-slate-500 font-medium mt-0.5">ملف بصيغة PDF متاح للتصفح والتحميل المباشر</p>
                             </div>
                           </div>
-                          <a 
-                            href={(activeItem as Lesson).pdfUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-colors w-full sm:w-auto"
-                          >
-                            عرض وتحميل الملف <FileText className="mr-1.5 h-3.5 w-3.5" />
-                          </a>
+                          
+                          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                            <a 
+                              href={(activeItem as Lesson).pdfUrl} 
+                              download={(activeItem as Lesson).pdfName || 'مذكرة.pdf'}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all gap-1.5 hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
+                            >
+                              <span>تحميل الملف</span>
+                              <Download className="h-4 w-4" />
+                            </a>
+                            <a 
+                              href={(activeItem as Lesson).pdfUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center h-10 px-4 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all gap-1.5 hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
+                            >
+                              <span>فتح في نافذة جديدة</span>
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </div>
+                        </div>
+
+                        {/* Interactive In-App PDF Viewer Container */}
+                        <div className="border border-slate-200/80 rounded-2xl overflow-hidden bg-slate-50 shadow-sm">
+                          <div className="bg-slate-100/80 border-b border-slate-200/80 px-4 py-3 flex items-center justify-between flex-row-reverse">
+                            <div className="flex items-center gap-2 flex-row-reverse">
+                              <Eye className="h-4 w-4 text-slate-500" />
+                              <span className="text-xs font-bold text-slate-700">قارئ المذكرات والملفات المدمج</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">يمكنك القراءة والتصفح مباشرة أدناه</span>
+                          </div>
+                          
+                          <div className="relative w-full h-[500px] sm:h-[650px] bg-slate-100 flex items-center justify-center">
+                            <iframe 
+                              src={`${(activeItem as Lesson).pdfUrl}#toolbar=1&navpanes=0&messages=0`} 
+                              className="w-full h-full border-none rounded-b-2xl"
+                              title={(activeItem as Lesson).pdfName || 'عرض ملف PDF'}
+                              allow="fullscreen"
+                            />
+                          </div>
+                          
+                          <div className="p-3 bg-amber-50/40 border-t border-slate-100 text-[10.5px] text-amber-800 text-center font-medium">
+                            تنبيه: إذا واجهت مشكلة في التصفح داخل بعض الهواتف، يمكنك استخدام زر <span className="font-bold">"تحميل الملف"</span> أو زر <span className="font-bold">"فتح في نافذة جديدة"</span> بالأعلى.
+                          </div>
                         </div>
                       </div>
                     )}
